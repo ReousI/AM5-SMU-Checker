@@ -1,4 +1,4 @@
-﻿using SharpCompress.Compressors.LZMA;
+using SharpCompress.Compressors.LZMA;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -92,13 +92,13 @@ namespace AM5SMU
                     //Log($"   File:    {biosName}");
                     //Log($"   Size:    {BytesToKB(biosBytes.Length).ToString("N0")} KB");
 
-                    // Agesa, Name, Version, ... ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                    // ++++++++++++++++ Agesa, Name, Version, ... ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                     try
                     {
                         var both = AgesaLzmaScanner.TryFindAgesaAndAmiInLzma(biosBytes);
                         if (both != null)
                         {
-                            
+
                             string oem = (both.NameWords != null && both.NameWords.Length > 0) ? both.NameWords[0] : string.Empty;
                             string board = (both.NameWords != null && both.NameWords.Length > 1) ? both.NameWords[1] : string.Empty;
                             bool agesaFound = !string.IsNullOrEmpty(both.Agesa);
@@ -142,158 +142,204 @@ namespace AM5SMU
                     }
                     catch
                     { }
-                }
-
-
-
-                // Chipsatz  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                var oChipx = SearchPattern(biosBytes, "5F 50 54 5F", 0x0);
-                if (oChipx.Any())
-                {
-                    Log("───────────────────────────────────────────────────────────────────────────", ConsoleColor.DarkGray);
-                    int foundCount = 0;
-                    foreach (var smuOffset in oChipx)
-                    {
-                        if (smuOffset - 0x94 < 0 || smuOffset + 0x98 > biosBytes.Length)  
-                            continue;
-
-                        var span = biosBytes.AsSpan(smuOffset);
-                        int smuLen = BitConverter.ToInt32(biosBytes, smuOffset - 0x94);
-
-                        string date = $"20{span[0x8C]:X2}.{span[0x8D]:X2}.{span[0x8E]:X2}"; // 20YY.MM.DD                
-                        string smuVer = $"{span[0x8F]:X2}.{span[0x90]:X2}.{span[0x91]:X2}"; // SMU-Version: AA.BB.CC
-                        string fw = "FW" + Encoding.ASCII.GetString(biosBytes, smuOffset + 0x93, 5); // "FW" + 5 ASCII-Zeichen ab 0x93
-
-                        Log($"        Chipset Info:   {smuVer} | {fw} | {date} | ({BytesToKB(smuLen):N0} KB)", ConsoleColor.Gray);
-
-                        foundCount++;
-                        if (foundCount >= 2)
-                            break;
                     }
-                }
 
 
 
-                Console.Write(Environment.NewLine);
-                Console.BackgroundColor = ConsoleColor.DarkBlue;
-                Log("        S Y S T E M    M A N A G E M E N T    U N I T    [ S M U ]         ", ConsoleColor.White);
-                Console.BackgroundColor = ConsoleColor.DarkCyan;
-                Log("    Version        Size        CPU/APU  Family               Offset        ", ConsoleColor.Black);
-                Console.ResetColor();
-
-
-                // Raphael1 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                var Raphael = SearchPattern(biosBytes, "54 ? 00 00 00 00 00 00 00 ? ? ? ? 00 00 00 00 00 00 00 00 00 00 00 00 00 08 00 01 00", -0x62);
-                if (Raphael.Any())
-                {
-                    foreach (var smuOffset in Raphael)
+                    // +++++++++++  Chipsatz  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                    var oChipx = SearchPattern(biosBytes, "5F 50 54 5F", 0x0);
+                    if (oChipx.Any())
                     {
-                        var smuLen = BitConverter.ToInt32(biosBytes, smuOffset + 0x6C);
-                        var smuVer = $"{biosBytes[smuOffset + 0x63]}.{biosBytes[smuOffset + 0x62].ToString("00")}.{biosBytes[smuOffset + 0x61].ToString("00")}.{biosBytes[smuOffset + 0x60]}";
+                        Log("───────────────────────────────────────────────────────────────────────────", ConsoleColor.DarkGray);
+                        int foundCount = 0;
+                        foreach (var smuOffset in oChipx)
+                        {
+                            if (smuOffset - 0x94 < 0 || smuOffset + 0x98 > biosBytes.Length)
+                                continue;
 
-                        Log($"   {(smuVer).PadRight(11)}   ({BytesToKB(smuLen).ToString("N0").PadLeft(3, ' ')} KB) " +
-                            $"  Raphael/X      7xx0 CPU   [{smuOffset.ToString("X").PadLeft(8, '0')}-{(smuOffset + smuLen).ToString("X").PadLeft(8, '0')}]", ConsoleColor.Green);
+                            var span = biosBytes.AsSpan(smuOffset);
+                            int smuLen = BitConverter.ToInt32(biosBytes, smuOffset - 0x94);
+
+                            string date = $"20{span[0x8C]:X2}.{span[0x8D]:X2}.{span[0x8E]:X2}"; // 20YY.MM.DD                
+                            string smuVer = $"{span[0x8F]:X2}.{span[0x90]:X2}.{span[0x91]:X2}"; // SMU-Version: AA.BB.CC
+                            string fw = "FW" + Encoding.ASCII.GetString(biosBytes, smuOffset + 0x93, 5); // "FW" + 5 ASCII-Zeichen
+
+                            Log($"        Chipset Info:   {smuVer} | {fw} | {date} | ({BytesToKB(smuLen):N0} KB)", ConsoleColor.Gray);
+
+                            foundCount++;
+                            if (foundCount >= 2)
+                                break;
+                        }
                     }
-                }
-                else
-                {
-                    byte[] rpl1 = { 0x12, 0x60, 0x0A, 0x05, 0x80 };
-                    byte[] mask1 = { 0xFF, 0xFF, 0xFF, 0x00, 0xFF };
 
-                    byte[] rpl2 = { 0x13, 0x60, 0x0A, 0x05, 0x80 };
-                    byte[] mask2 = { 0xFF, 0xFF, 0xFF, 0x00, 0xFF };
 
-                    if (ContainsSequenceMasked(biosBytes, rpl1, mask1) || ContainsSequenceMasked(biosBytes, rpl2, mask2))
 
+                    Console.Write(Environment.NewLine);
+                    Console.BackgroundColor = ConsoleColor.DarkBlue;
+                    Log("        S Y S T E M    M A N A G E M E N T    U N I T    [ S M U ]         ", ConsoleColor.White);
+                    Console.BackgroundColor = ConsoleColor.DarkCyan;
+                    Log("    Version        Size        CPU/APU  Family               Offset        ", ConsoleColor.Black);
+                    Console.ResetColor();
+
+
+                    // +++++++++++  Raphael1  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                    var Raphael = SearchPattern(biosBytes, "54 ? 00 00 00 00 00 00 00 ? ? ? ? 00 00 00 00 00 00 00 00 00 00 00 00 00 08 00 01 00", -0x62);
+                    if (Raphael.Any())
                     {
-                        Log($"   Found Raphael CPUID but SMU detection failed\n   Program update may be necessary", ConsoleColor.DarkGray);
+                        foreach (var smuOffset in Raphael)
+                        {
+                            var smuLen = BitConverter.ToInt32(biosBytes, smuOffset + 0x6C);
+                            var smuVer = $"{biosBytes[smuOffset + 0x63]}.{biosBytes[smuOffset + 0x62].ToString("00")}.{biosBytes[smuOffset + 0x61].ToString("00")}.{biosBytes[smuOffset + 0x60]}";
+
+                            Log($"   {(smuVer).PadRight(11)}   ({BytesToKB(smuLen).ToString("N0").PadLeft(3, ' ')} KB) " +
+                                $"  Raphael/X      7xx0 CPU   [{smuOffset.ToString("X").PadLeft(8, '0')}-{(smuOffset + smuLen).ToString("X").PadLeft(8, '0')}]", ConsoleColor.Green);
+                        }
                     }
                     else
                     {
-                        Log($"   Could't find any Raphael SMU or CPUID - CPU may not be supported", ConsoleColor.DarkGray);
+                        byte[] rpl1 = { 0x12, 0x60, 0x0A, 0x05, 0x80 };
+                        byte[] mask1 = { 0xFF, 0xFF, 0xFF, 0x00, 0xFF };
+
+                        byte[] rpl2 = { 0x13, 0x60, 0x0A, 0x05, 0x80 };
+                        byte[] mask2 = { 0xFF, 0xFF, 0xFF, 0x00, 0xFF };
+
+                        if (ContainsSequenceMasked(biosBytes, rpl1, mask1) || ContainsSequenceMasked(biosBytes, rpl2, mask2))
+
+                        {
+                            Log($"   Found Raphael CPUID but SMU detection failed\n   Program update may be necessary", ConsoleColor.DarkGray);
+                        }
+                        else
+                        {
+                            Log($"   Could't find any Raphael SMU or CPUID - CPU may not be supported", ConsoleColor.DarkGray);
+                        }
                     }
-                }
 
-                // Phoenix ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                var Phoenix = SearchPattern(biosBytes, "01 00 00 00 02 00 00 00 00 00 04 00 ? ? ? 00 ? 10 01 81 00 00 00 00 ? ? 4C", -0x48);
-                if (Phoenix.Any())
-                {
-                    Log("   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─", ConsoleColor.DarkGray);
-                    foreach (var smuOffset in Phoenix)
-                    {
-                        var smuLen = BitConverter.ToInt32(biosBytes, smuOffset + 0x6C);
-                        var smuVer = $"{biosBytes[smuOffset + 0x63]}.{biosBytes[smuOffset + 0x62].ToString("00")}.{biosBytes[smuOffset + 0x61].ToString("00")}.{biosBytes[smuOffset + 0x60]}";
-
-                        Log($"   {(smuVer).PadRight(11)}   ({BytesToKB(smuLen).ToString("N0").PadLeft(3, ' ')} KB) " +
-                            $"  Phoenix/2      8xx0 APU   [{smuOffset.ToString("X").PadLeft(8, '0')}-{(smuOffset + smuLen).ToString("X").PadLeft(8, '0')}]", ConsoleColor.Green);
-                    }
-                }
-                else
-                {
-                    byte[] phx1 = { 0x52, 0x70, 0x0A, 0x05, 0x80 };
-                    byte[] mask1 = { 0xFF, 0xFF, 0xFF, 0x00, 0xFF };
-
-                    byte[] phx2 = { 0x80, 0x70, 0x0A, 0x05, 0x80 };
-                    byte[] mask2 = { 0xFF, 0xFF, 0xFF, 0x00, 0xFF };
-
-                    if (ContainsSequenceMasked(biosBytes, phx1, mask1) || ContainsSequenceMasked(biosBytes, phx2, mask2))
+                    // +++++++++++  Phoenix ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                    var Phoenix = SearchPattern(biosBytes, "01 00 00 00 02 00 00 00 00 00 04 00 ? ? ? 00 ? 10 01 81 00 00 00 00 ? ? 4C", -0x48);
+                    if (Phoenix.Any())
                     {
                         Log("   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─", ConsoleColor.DarkGray);
-                        Log($"   Found Phoenix CPUID but SMU detection failed\n   Program update may be necessary", ConsoleColor.DarkGray);
+                        foreach (var smuOffset in Phoenix)
+                        {
+                            var smuLen = BitConverter.ToInt32(biosBytes, smuOffset + 0x6C);
+                            var smuVer = $"{biosBytes[smuOffset + 0x63]}.{biosBytes[smuOffset + 0x62].ToString("00")}.{biosBytes[smuOffset + 0x61].ToString("00")}.{biosBytes[smuOffset + 0x60]}";
+
+                            Log($"   {(smuVer).PadRight(11)}   ({BytesToKB(smuLen).ToString("N0").PadLeft(3, ' ')} KB) " +
+                                $"  Phoenix/2      8xx0 APU   [{smuOffset.ToString("X").PadLeft(8, '0')}-{(smuOffset + smuLen).ToString("X").PadLeft(8, '0')}]", ConsoleColor.Green);
+                        }
                     }
                     else
                     {
-                        Log("   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─", ConsoleColor.DarkGray);
-                        Log($"   Could't find any Phoenix SMU or CPUID - APU may not be supported", ConsoleColor.DarkGray);
+                        byte[] phx1 = { 0x52, 0x70, 0x0A, 0x05, 0x80 };
+                        byte[] mask1 = { 0xFF, 0xFF, 0xFF, 0x00, 0xFF };
+
+                        byte[] phx2 = { 0x80, 0x70, 0x0A, 0x05, 0x80 };
+                        byte[] mask2 = { 0xFF, 0xFF, 0xFF, 0x00, 0xFF };
+
+                        if (ContainsSequenceMasked(biosBytes, phx1, mask1) || ContainsSequenceMasked(biosBytes, phx2, mask2))
+                        {
+                            Log("   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─", ConsoleColor.DarkGray);
+                            Log($"   Found Phoenix CPUID but SMU detection failed\n   Program update may be necessary", ConsoleColor.DarkGray);
+                        }
+                        else
+                        {
+                            Log("   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─", ConsoleColor.DarkGray);
+                            Log($"   Could't find any Phoenix SMU or CPUID - APU may not be supported", ConsoleColor.DarkGray);
+                        }
                     }
-                }
 
-                // Granite Ridge ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                var Granite = SearchPattern(biosBytes, "62 00 00 00 00 00 00 00 00 ? ? ? ? 00 00 00 00 00 00 00 00 00 00 00 00 00 08 00 01 00", -0x62);
-                if (Granite.Any())
-                {
-                    Log("   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─", ConsoleColor.DarkGray);
-                    foreach (var smuOffset in Granite)
-                    {
-                        var smuLen = BitConverter.ToInt32(biosBytes, smuOffset + 0x6C);
-                        var smuVer = $"{biosBytes[smuOffset + 0x63]}.{biosBytes[smuOffset + 0x62].ToString("00")}.{biosBytes[smuOffset + 0x61].ToString("00")}.{biosBytes[smuOffset + 0x60]}";
-
-                        Log($"   {(smuVer).PadRight(11)}   ({BytesToKB(smuLen).ToString("N0").PadLeft(3, ' ')} KB) " +
-                            $"  Granite Ridge  9xx0 CPU   [{smuOffset.ToString("X").PadLeft(8, '0')}-{(smuOffset + smuLen).ToString("X").PadLeft(8, '0')}]", ConsoleColor.Green);
-                    }
-                }
-                else
-                {
-                    byte[] gnr1 = { 0x40, 0x40, 0x0B, 0x15, 0x80 };
-                    byte[] mask1 = { 0xFF, 0xFF, 0xFF, 0x00, 0xFF };
-
-                    byte[] gnr2 = { 0x41, 0x40, 0x0B, 0x15, 0x80 };
-                    byte[] mask2 = { 0xFF, 0xFF, 0xFF, 0x00, 0xFF };
-
-                    if (ContainsSequenceMasked(biosBytes, gnr1, mask1) || ContainsSequenceMasked(biosBytes, gnr2, mask2))
-         
+                    // +++++++++++  Granite Ridge ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                    var Granite = SearchPattern(biosBytes, "62 00 00 00 00 00 00 00 00 ? ? ? ? 00 00 00 00 00 00 00 00 00 00 00 00 00 08 00 01 00", -0x62);
+                    if (Granite.Any())
                     {
                         Log("   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─", ConsoleColor.DarkGray);
-                        Log($"   Found Granite Ridge CPUID but SMU detection failed\n   Program update may be necessary", ConsoleColor.DarkGray);
+                        foreach (var smuOffset in Granite)
+                        {
+                            var smuLen = BitConverter.ToInt32(biosBytes, smuOffset + 0x6C);
+                            var smuVer = $"{biosBytes[smuOffset + 0x63]}.{biosBytes[smuOffset + 0x62].ToString("00")}.{biosBytes[smuOffset + 0x61].ToString("00")}.{biosBytes[smuOffset + 0x60]}";
+
+                            Log($"   {(smuVer).PadRight(11)}   ({BytesToKB(smuLen).ToString("N0").PadLeft(3, ' ')} KB) " +
+                                $"  Granite Ridge  9xx0 CPU   [{smuOffset.ToString("X").PadLeft(8, '0')}-{(smuOffset + smuLen).ToString("X").PadLeft(8, '0')}]", ConsoleColor.Green);
+                        }
                     }
                     else
                     {
-                        Log("   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─", ConsoleColor.DarkGray);
-                        Log($"   Could't find any Granite Ridge SMU or CPUID - CPU may not be supported", ConsoleColor.DarkGray);
+                        byte[] gnr1 = { 0x40, 0x40, 0x0B, 0x15, 0x80 };
+                        byte[] mask1 = { 0xFF, 0xFF, 0xFF, 0x00, 0xFF };
+
+                        byte[] gnr2 = { 0x41, 0x40, 0x0B, 0x15, 0x80 };
+                        byte[] mask2 = { 0xFF, 0xFF, 0xFF, 0x00, 0xFF };
+
+                        if (ContainsSequenceMasked(biosBytes, gnr1, mask1) || ContainsSequenceMasked(biosBytes, gnr2, mask2))
+
+                        {
+                            Log("   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─", ConsoleColor.DarkGray);
+                            Log($"   Found Granite Ridge CPUID but SMU detection failed\n   Program update may be necessary", ConsoleColor.DarkGray);
+                        }
+                        else
+                        {
+                            Log("   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─", ConsoleColor.DarkGray);
+                            Log($"   Could't find any Granite Ridge SMU or CPUID - CPU may not be supported", ConsoleColor.DarkGray);
+                        }
                     }
-                }
+
+                    // ++++++++++++  Krackan  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                    const string pattern03 = "A9 01 00 00 00 02 00 00 00 00 00 03 00 ? ? ? 00 ? 10 02 82 00 00 00 00 ? ? ? ? 00 00";
+                    const string pattern06 = "A9 01 00 00 00 02 00 00 00 00 00 06 00 ? ? ? 00 ? 10 02 82 00 00 00 00 ? ? ? ? 00 00";
+
+                    var Krackan = SearchPattern(biosBytes, pattern03, -0x47)
+                                .Concat(SearchPattern(biosBytes, pattern06, -0x47))
+                                .Distinct()
+                                .OrderBy(o => o)
+                                .ToList();
+
+                    if (Krackan.Any())
+                    {
+                        Log("   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─", ConsoleColor.DarkGray);
+                        int foundCount = 0;
+                        foreach (var smuOffset in Krackan)
+                        {
+                            var smuLen = BitConverter.ToInt32(biosBytes, smuOffset + 0x14) + 0x800;
+                            var smuVer = $"{biosBytes[smuOffset + 0x63]}.{biosBytes[smuOffset + 0x62].ToString("00")}.{biosBytes[smuOffset + 0x61].ToString("00")}.{biosBytes[smuOffset + 0x60]}";
+
+                            Log($"   {(smuVer).PadRight(11)}   ({BytesToKB(smuLen).ToString("N0").PadLeft(3, ' ')} KB) " +
+                                $"  Krackan/2      xxxx APU   [{smuOffset.ToString("X").PadLeft(8, '0')}-{(smuOffset + smuLen).ToString("X").PadLeft(8, '0')}]", ConsoleColor.Green);
+
+                            foundCount++;
+                            if (foundCount >= 2)
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        byte[] krk1 = { 0x80, 0x60, 0x0B, 0x16, 0x80 };
+                        byte[] mask1 = { 0xFF, 0xFF, 0xFF, 0x00, 0xFF };
+
+                        byte[] krk2 = { 0x00, 0x60, 0x0B, 0x15, 0x80 };
+                        byte[] mask2 = { 0xFF, 0xFF, 0xFF, 0x00, 0xFF };
+
+                        if (ContainsSequenceMasked(biosBytes, krk1, mask1) || ContainsSequenceMasked(biosBytes, krk2, mask2))
+                        {
+                            Log("   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─", ConsoleColor.DarkGray);
+                            Log($"   Found Krackan CPUID but SMU detection failed\n   Program update may be necessary", ConsoleColor.DarkGray);
+                        }
+                        else
+                        {
+                            Log("   ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─", ConsoleColor.DarkGray);
+                            Log($"   Could't find any Krackan SMU or CPUID - APU may not be supported", ConsoleColor.DarkGray);
+                        }
+                    }
 
 
 
 
 
 
-
-
-                Console.Write(Environment.NewLine);
-                Console.BackgroundColor = ConsoleColor.DarkBlue;
-                Log("                 Credits to RaINi, Reous and PatrickSchur                  ", ConsoleColor.Black);
-                Console.ResetColor();
+                    Console.Write(Environment.NewLine);
+                    Console.BackgroundColor = ConsoleColor.DarkBlue;
+                    Log("                 Credits to RaINi, Reous and PatrickSchur                  ", ConsoleColor.Black);
+                    Console.ResetColor();
+                
             }
             //Log("", wait: true);
             Console.ReadLine();
@@ -458,7 +504,7 @@ namespace AM5SMU
                 bool match = true;
                 for (int j = 0; j < pattern.Length; j++)
                 {
-                    if (mask[j] == 0x00) continue; // dieses Byte ignorieren
+                    if (mask[j] == 0x00) continue; 
                     if (data[i + j] != pattern[j])
                     {
                         match = false;
@@ -546,8 +592,9 @@ namespace AM5SMU
         internal sealed class CombinedFinderSink : Stream
         {
             private static readonly byte[] PatAgesa = Encoding.ASCII.GetBytes("AGESA!V9");
-            private static readonly byte[] PatAmi = { 0x41, 0x6D, 0x65, 0x72, 0x69, 0x63, 0x61, 0x6E, 0x20, 0x4D, 0x65, 0x67, 0x61, 0x74, 0x72, 0x65, 0x6E, 0x64, 0x73, 0x20 };
+            private static readonly byte[] PatAmi = { 0x00, 0x00, 0x01, 0x1B, 0x01, 0x00, 0x01, 0x02, 0x03, 0x04, 0x00, 0x02, 0x00, 0x03 };
             private static readonly byte[] PatName = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x09, 0x06, 0xFF, 0x00, 0x0A, 0x00 };
+
 
             public readonly CombinedResult Result = new CombinedResult();
 
@@ -556,9 +603,13 @@ namespace AM5SMU
             private byte[] _agBuf = new byte[64]; private int _agLen; private bool _agDone;
 
             // ---- AMI ----
-            private int _amMatch; private bool _amFound; private int _amZeroRun;
-            private byte[] _amCur = new byte[64]; private int _amCurLen;
-            private string _amLast1 = string.Empty, _amLast2 = string.Empty; private bool _amDone;
+            private const int AmiMaxWordLen = 32; private int _amMatch;
+            private byte[] _amCur = new byte[AmiMaxWordLen]; private int _amCurLen;
+            private byte[] _amLast1 = new byte[AmiMaxWordLen]; private int _amLast1Len; 
+            private byte[] _amLast2 = new byte[AmiMaxWordLen]; private int _amLast2Len;
+            private byte[] _amBefore1 = new byte[AmiMaxWordLen]; private int _amBefore1Len;
+            private byte[] _amBefore2 = new byte[AmiMaxWordLen]; private int _amBefore2Len;
+            private bool _amDone;
 
             // ---- NAME ----
             private int _nmMatch; private bool _nmFound; private int _nmZeroRun;
@@ -625,51 +676,74 @@ namespace AM5SMU
                     // ---- AMI ----
                     if (!_amDone)
                     {
-                        if (!_amFound)
+                        // 1. C-Wörter immer mitschneiden
+                        if (b == 0x00)
+                        {
+                            if (_amCurLen > 0)
+                            {
+                                Buffer.BlockCopy(_amLast1, 0, _amLast2, 0, AmiMaxWordLen);
+                                _amLast2Len = _amLast1Len;
+
+                                Buffer.BlockCopy(_amCur, 0, _amLast1, 0, _amCurLen);
+                                _amLast1Len = _amCurLen;
+
+                                _amCurLen = 0;
+                            }
+                        }
+                        else
+                        {
+                            if (_amCurLen < AmiMaxWordLen)
+                            {
+                                _amCur[_amCurLen++] = b;
+                            }
+                        }
+                        if (_amMatch == 0)
+                        {
+                            if (b == PatAmi[0])
+                            {
+                                _amMatch = 1;
+
+                                Buffer.BlockCopy(_amLast2, 0, _amBefore1, 0, AmiMaxWordLen);
+                                _amBefore1Len = _amLast2Len;
+
+                                Buffer.BlockCopy(_amLast1, 0, _amBefore2, 0, AmiMaxWordLen);
+                                _amBefore2Len = _amLast1Len;
+                            }
+                        }
+                        else
                         {
                             if (b == PatAmi[_amMatch])
                             {
                                 _amMatch++;
+
                                 if (_amMatch == PatAmi.Length)
                                 {
-                                    _amFound = true; _amMatch = 0;
-                                    _amZeroRun = 0; _amCurLen = 0;
-                                    _amLast1 = _amLast2 = string.Empty;
-                                }
-                            }
-                            else _amMatch = (b == PatAmi[0]) ? 1 : 0;
-                        }
-                        else
-                        {
-                            if (b == 0x00)
-                            {
-                                _amZeroRun++;
-                                if (_amCurLen > 0)
-                                {
-                                    var w = Encoding.ASCII.GetString(_amCur, 0, _amCurLen);
-                                    if (!string.IsNullOrEmpty(w))
-                                    { _amLast2 = _amLast1; _amLast1 = w; }
-                                    _amCurLen = 0;
-                                }
-                                if (_amZeroRun >= 2)
-                                {
-                                    Result.AmiLastWord1 = _amLast2;
-                                    Result.AmiLastWord2 = _amLast1;
+                                    Result.AmiLastWord1 = (_amBefore1Len > 0)
+                                        ? Encoding.ASCII.GetString(_amBefore1, 0, _amBefore1Len)
+                                        : string.Empty;
+
+                                    Result.AmiLastWord2 = (_amBefore2Len > 0)
+                                        ? Encoding.ASCII.GetString(_amBefore2, 0, _amBefore2Len)
+                                        : string.Empty;
+
                                     _amDone = true;
                                 }
                             }
                             else
                             {
-                                _amZeroRun = 0;
-                                if (_amCurLen == _amCur.Length)
+                                _amMatch = (b == PatAmi[0]) ? 1 : 0;
+
+                                if (_amMatch == 1)
                                 {
-                                    var nb = new byte[_amCur.Length << 1];
-                                    Buffer.BlockCopy(_amCur, 0, nb, 0, _amCur.Length);
-                                    _amCur = nb;
+                                    Buffer.BlockCopy(_amLast2, 0, _amBefore1, 0, AmiMaxWordLen);
+                                    _amBefore1Len = _amLast2Len;
+
+                                    Buffer.BlockCopy(_amLast1, 0, _amBefore2, 0, AmiMaxWordLen);
+                                    _amBefore2Len = _amLast1Len;
                                 }
-                                _amCur[_amCurLen++] = b;
                             }
-                        }
+                        }  
+                        
                     }
 
                     // ---- NAME ----
@@ -677,7 +751,6 @@ namespace AM5SMU
                     {
                         if (!_nmFound)
                         {
-                            //if (b == PatName[_nmMatch])
                             if (PatName[_nmMatch] == 0xFF || b == PatName[_nmMatch])
                             {
                                 _nmMatch++;
@@ -697,7 +770,6 @@ namespace AM5SMU
                         }
                         else
                         {
-                            // Nach Pattern: C-Strings lesen
                             if (b == 0x00)
                             {
                                 _nmZeroRun++;
@@ -714,7 +786,6 @@ namespace AM5SMU
                                 // Wenn 2 Wörter gesammelt → abbrechen
                                 if (_nmWords.Count >= 2)
                                 {
-                                    //Result.NameWords = new[] { _nmWords[1] }; // nur das zweite Wort
                                     Result.NameWords = _nmWords.ToArray();
                                     _nmDone = true;
                                 }
@@ -732,8 +803,6 @@ namespace AM5SMU
                             }
                         }
                     }
-
-                    // alle drei fertig → abbrechen
                     if (_agDone && _amDone && _nmDone)
                         throw new FoundAndStopException("all");
                 }
@@ -758,12 +827,10 @@ namespace AM5SMU
                 foreach (int rel in relOffsets)
                 {
                     int lzmaStart = guidAt + rel;
-                    // Mind. 13 Header-Bytes (5 Props + 8 Size) müssen vorhanden sein
                     if (lzmaStart < 0 || lzmaStart + 13 > bios.Length) continue;
 
                     using (var src = new ThrottledArraySegmentStream(bios, lzmaStart, null, 4096))
                     {
-                        // --- LZMA-Alone Header: 5 Props + 8 UncompressedSize (konsumieren!) ---
                         byte[] props = new byte[5];
                         if (src.Read(props, 0, 5) != 5) continue;
 
@@ -799,7 +866,6 @@ namespace AM5SMU
                                     return sink.Result;
                                 }
 
-                                // Kein Frühabbruch – wenn wenigstens etwas gefunden wurde, akzeptieren
                                 if (!string.IsNullOrEmpty(sink.Result?.Agesa) ||
                                     !string.IsNullOrEmpty(sink.Result?.AmiLastWord1) ||
                                     !string.IsNullOrEmpty(sink.Result?.AmiLastWord2) ||
@@ -817,7 +883,6 @@ namespace AM5SMU
                 return null;
             }
 
-            // Boyer-Moore-Horspool für die 16-Byte-GUID (schnell)
             private static int IndexOfGuidBMH(byte[] data, byte[] needle)
             {
                 int n = data.Length, m = needle.Length;
@@ -843,10 +908,6 @@ namespace AM5SMU
                 return -1;
             }
         }
-
-
-
-
 
     }
 }
