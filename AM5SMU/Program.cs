@@ -1,4 +1,4 @@
-﻿using SharpCompress.Compressors.LZMA;
+using SharpCompress.Compressors.LZMA;
 using System.IO.Compression;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -37,14 +37,14 @@ namespace AM5SMU
                 }
 
                 if (OperatingSystem.IsWindows())
-                { 
-                try
                 {
-                    int w = Math.Min(76, Console.LargestWindowWidth);
-                    int h = Math.Min(42, Console.LargestWindowHeight);
-                    if (w > 0 && h > 0) Console.SetWindowSize(w, h);
-                }
-                catch { }
+                    try
+                    {
+                        int w = Math.Min(76, Console.LargestWindowWidth);
+                        int h = Math.Min(42, Console.LargestWindowHeight);
+                        if (w > 0 && h > 0) Console.SetWindowSize(w, h);
+                    }
+                    catch { }
                 }
 
                 Console.BackgroundColor = ConsoleColor.DarkBlue;
@@ -887,7 +887,7 @@ namespace AM5SMU
                 if (guidAt < 0) return null;
 
                 int searchStart = guidAt + GuidBytes.Length;
-                int searchEnd = Math.Min(bios.Length, searchStart + 0x100); 
+                int searchEnd = Math.Min(bios.Length, searchStart + 0x100);
 
                 int lzmaStart = IndexOfPatternLimited(bios, searchStart, searchEnd, LzmaHeaderPattern);
                 if (lzmaStart < 0)
@@ -961,7 +961,7 @@ namespace AM5SMU
 
 
 
-        private static int IndexOfGuidBMH(byte[] data, byte[] needle)
+            private static int IndexOfGuidBMH(byte[] data, byte[] needle)
             {
                 int n = data.Length, m = needle.Length;
                 if (m == 0) return 0;
