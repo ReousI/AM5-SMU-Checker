@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Globalization;
+using System.Reflection;
 
 
 namespace AM5SMU
@@ -20,7 +21,7 @@ namespace AM5SMU
 
         static void Main(string[] args)
         {
-            Console.Title = "AM5 SMU Checker v1.17";
+            Console.Title = $"AM5 SMU Checker v{Assembly.GetEntryAssembly()!.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion}";
 
             Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
 
